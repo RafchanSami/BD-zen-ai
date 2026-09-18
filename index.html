@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BD-Zen AI - বাংলাদেশ স্মার্ট এআই অ্যাসিট্যান্ট</title>
+
+    <!-- Logo Favicon for Google Browser Tab -->
+    <link rel="icon" type="image/png" href="https://i.imgur.com/95NcIt4.png" />
+    <link rel="apple-touch-icon" href="https://i.imgur.com/95NcIt4.png" />
+
+    <!-- PWA Manifest & Web App Config -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#006a4e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BD-Zen AI" />
+
+    <!-- Open Graph for Facebook/WhatsApp/Google -->
+    <meta property="og:title" content="BD-Zen AI - বাংলাদেশ স্মার্ট এআই অ্যাসিট্যান্ট" />
+    <meta property="og:description" content="স্মার্ট, শান্ত ও নির্ভুল সমাধানের বাংলা এআই সহকারী।" />
+    <meta property="og:image" content="https://i.imgur.com/95NcIt4.png" />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
+

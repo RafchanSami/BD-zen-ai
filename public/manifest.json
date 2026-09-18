@@ -1,0 +1,25 @@
+{
+  "short_name": "BD-Zen AI",
+  "name": "BD-Zen AI - বাংলাদেশ স্মার্ট এআই অ্যাসিট্যান্ট",
+  "icons": [
+    {
+      "src": "https://i.imgur.com/95NcIt4.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.imgur.com/95NcIt4.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#006a4e",
+  "theme_color": "#006a4e",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Smart, balanced, and highly capable AI assistant developed for Bangladesh."
+}

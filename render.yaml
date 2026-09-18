@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: bdzen-ai
+    env: node
+    buildCommand: bun install && bun run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production

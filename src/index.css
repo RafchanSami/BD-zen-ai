@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --brand-primary: #006a4e;
+  --brand-dark: #00503a;
+  --brand-light-bg: #ecfdf5;
+  --brand-border: #a7f3d0;
+}
+
+/* Accent Theme Utility Classes */
+.bg-brand-primary {
+  background-color: var(--brand-primary);
+}
+
+.hover\:bg-brand-dark:hover {
+  background-color: var(--brand-dark);
+}
+
+.text-brand-primary {
+  color: var(--brand-primary);
+}
+
+.border-brand-primary {
+  border-color: var(--brand-primary);
+}
+
+.bg-brand-light-bg {
+  background-color: var(--brand-light-bg);
+}
+
+.border-brand-border {
+  border-color: var(--brand-border);
+}
+
+.focus-within\:ring-brand-primary:focus-within {
+  --tw-ring-color: var(--brand-primary);
+}

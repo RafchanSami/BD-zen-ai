@@ -1,0 +1,23 @@
+{
+  "entities": {
+    "User": {
+      "path": "users/{userId}",
+      "fields": {
+        "uid": { "type": "string", "description": "User ID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "photoURL": { "type": "string", "description": "Avatar URL" },
+        "createdAt": { "type": "string", "description": "Account creation timestamp" }
+      }
+    },
+    "ChatSession": {
+      "path": "users/{userId}/chats/{chatId}",
+      "fields": {
+        "id": { "type": "string", "description": "Chat session ID" },
+        "title": { "type": "string", "description": "Session title" },
+        "messages": { "type": "array", "description": "Array of ChatMessage objects" },
+        "updatedAt": { "type": "string", "description": "Last updated timestamp" }
+      }
+    }
+  }
+}

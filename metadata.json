@@ -1,0 +1,8 @@
+{
+  "name": "BD-Zen AI",
+  "description": "Smart, balanced, and highly capable AI assistant developed for Bangladesh, providing polite, logical, and accurate responses in Bengali, English, and Banglish.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
