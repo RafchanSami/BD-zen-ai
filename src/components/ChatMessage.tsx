@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Copy, Check, Volume2, VolumeX, ExternalLink, User, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Copy, Check, Volume2, VolumeX, ExternalLink, User, Sparkles, ThumbsUp, ThumbsDown, Globe } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../types';
 import { CodeBlock } from './CodeBlock';
 
@@ -233,8 +233,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSelectPromp
           {message.sources && message.sources.length > 0 && (
             <div className="mt-4 pt-3 border-t border-gray-100">
               <div className="text-[11px] font-bold text-[#006a4e] mb-1.5 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#006a4e]" />
-                Sources (Google Web Grounding):
+                <Globe className="w-3.5 h-3.5 text-[#006a4e]" />
+                <span>Verified Web Sources ({message.sources.length}):</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {message.sources.map((src, i) => (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff } from 'lucide-react';
+import { Send, Mic, MicOff, Globe } from 'lucide-react';
 import { PreferredLanguage } from '../types';
 
 interface ChatInputProps {
@@ -13,6 +13,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   language,
+  enableSearch = true,
 }) => {
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -150,11 +151,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </div>
         </form>
 
-        <p className="text-center text-[10px] text-gray-400">
-          {language === 'bn'
-            ? 'বিডি-জেন এআই বাংলাদেশ ও বৈশ্বিক তথ্যে সর্বদা প্রস্তুত।'
-            : 'BD-Zen AI is ready to assist with knowledge, coding, and answers.'}
-        </p>
+        <div className="flex items-center justify-between px-2 text-[10.5px] text-gray-400">
+          <span className="flex items-center gap-1 text-[#006a4e] font-medium">
+            <Globe className="w-3 h-3 text-[#006a4e]" />
+            {enableSearch
+              ? (language === 'bn' ? 'লাইভ ওয়েব সার্চ সক্রিয়' : 'Live Web Grounding Active')
+              : (language === 'bn' ? 'স্ট্যান্ডার্ড মোড' : 'Standard Chat Mode')}
+          </span>
+          <span className="hidden sm:inline">
+            {language === 'bn'
+              ? 'বাংলাদেশ ও বৈশ্বিক নির্ভরযোগ্য তথ্যে প্রস্তুত'
+              : 'Real-time search & verified knowledge'}
+          </span>
+        </div>
       </div>
     </div>
   );

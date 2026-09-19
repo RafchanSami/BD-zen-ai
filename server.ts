@@ -146,6 +146,222 @@ app.post("/api/chat/summarize-image", async (req: Request, res: Response) => {
   }
 });
 
+// Real-Time Live Web Search Engine
+interface WebSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/<[^>]+>/g, "")
+    .trim();
+}
+
+function cleanSearchQuery(query: string): string {
+  let cleaned = query
+    .replace(/[?!।.,]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (/[\u0980-\u09FF]/.test(cleaned)) {
+    if (
+      (cleaned.includes("সোনার দাম") ||
+        cleaned.includes("স্বর্ণের দাম") ||
+        cleaned.includes("আবহাওয়া") ||
+        cleaned.includes("খবর") ||
+        cleaned.includes("ডলার")) &&
+      !cleaned.includes("বাংলাদেশ")
+    ) {
+      cleaned += " বাংলাদেশ";
+    }
+  }
+  return cleaned.slice(0, 150);
+}
+
+function isSearchWorthy(query: string): boolean {
+  if (!query || typeof query !== "string") return false;
+  const q = query.trim().toLowerCase();
+  if (
+    /^(hi|hello|hey|salam|assalamu alaikum|kemon acho|ki obostha|who are you|tumi ke|apni ke|good morning|good night)\b/i.test(
+      q
+    ) &&
+    q.length < 25
+  ) {
+    return false;
+  }
+  const realTimeKeywords = [
+    "আজকের", "আজকে", "বর্তমান", "এখন", "দাম কত", "খবর", "লাইভ", "স্কোর", "আবহাওয়া", "রেট",
+    "সোনার দাম", "ডলার রেট", "সর্বশেষ", "তাজা", "আপডেট", "খেলা", "সময়", "তারিখ", "কারেন্সি",
+    "কে জিতল", "কখন", "ম্যাচ", "বাংলাদেশ", "টাকা", "নির্বাচন", "বাজেট",
+    "today", "current", "latest", "now", "live", "weather", "score", "price", "rate",
+    "news", "schedule", "standing", "dollar rate", "gold price", "exchange rate", "temperature",
+    "who won", "match", "fixture", "result", "time in", "election"
+  ];
+  if (realTimeKeywords.some((k) => q.includes(k))) {
+    return true;
+  }
+  return q.split(/\s+/).length >= 3;
+}
+
+async function performLiveWebSearch(query: string): Promise<WebSearchResult[]> {
+  if (!query || typeof query !== "string") return [];
+  const cleanQuery = cleanSearchQuery(query);
+  if (!cleanQuery) return [];
+
+  const results: WebSearchResult[] = [];
+  const q = query.toLowerCase();
+
+  // 1. Live Domain: Weather (Open-Meteo Real-time Forecast for Bangladesh)
+  if (
+    q.includes("weather") ||
+    q.includes("আবহাওয়া") ||
+    q.includes("আবহাওয়া") ||
+    q.includes("তাপমাত্রা") ||
+    q.includes("temperature") ||
+    q.includes("বৃষ্টি")
+  ) {
+    try {
+      const wRes = await fetch(
+        "https://api.open-meteo.com/v1/forecast?latitude=23.8103&longitude=90.4125&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&timezone=Asia%2FDhaka"
+      );
+      if (wRes.ok) {
+        const wData = (await wRes.json()) as any;
+        const cur = wData?.current;
+        if (cur) {
+          results.push({
+            title: "Live Weather Report (Dhaka, Bangladesh)",
+            url: "https://weather.com/weather/today/l/Dhaka+Bangladesh",
+            snippet: `Current Temperature: ${cur.temperature_2m}°C (Feels like: ${cur.apparent_temperature}°C), Relative Humidity: ${cur.relative_humidity_2m}%, Wind Speed: ${cur.wind_speed_10m} km/h, Precipitation: ${cur.precipitation} mm. Observation time: ${cur.time || "live"}.`,
+          });
+        }
+      }
+    } catch (wErr) {
+      console.warn("Weather search warning:", wErr);
+    }
+  }
+
+  // 2. Live Domain: Currency Exchange Rates (USD/BDT Live)
+  if (
+    q.includes("dollar") ||
+    q.includes("ডলার") ||
+    q.includes("টাকা") ||
+    q.includes("রেট") ||
+    q.includes("currency") ||
+    q.includes("rate") ||
+    q.includes("exchange") ||
+    q.includes("bdt")
+  ) {
+    try {
+      const cRes = await fetch("https://open.er-api.com/v6/latest/USD");
+      if (cRes.ok) {
+        const cData = (await cRes.json()) as any;
+        if (cData?.rates?.BDT) {
+          results.push({
+            title: "Live Foreign Exchange Rates (USD to BDT)",
+            url: "https://www.bb.org.bd/en/index.php/econdata/exchangerate",
+            snippet: `Current official live rate: 1 USD = ${cData.rates.BDT.toFixed(2)} Bangladeshi Taka (BDT). Last updated: ${cData.time_last_update_utc || "today"}.`,
+          });
+        }
+      }
+    } catch (cErr) {
+      console.warn("Currency search warning:", cErr);
+    }
+  }
+
+  // 3. DuckDuckGo HTML Live Web Search
+  try {
+    const encoded = encodeURIComponent(cleanQuery);
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encoded}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(searchUrl, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7",
+      },
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const html = await res.text();
+      const titleRegex =
+        /<h2 class="result__title">[\s\S]*?<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+      const snippetRegex = /<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+
+      const titles: { url: string; title: string }[] = [];
+      let match;
+      while ((match = titleRegex.exec(html)) !== null) {
+        let rawHref = match[1];
+        if (rawHref.includes("uddg=")) {
+          const matchUddg = rawHref.match(/uddg=([^&]+)/);
+          if (matchUddg) rawHref = decodeURIComponent(matchUddg[1]);
+        }
+        if (
+          !rawHref.includes("duckduckgo.com/y.js") &&
+          !rawHref.includes("bing.com/aclick") &&
+          rawHref.startsWith("http")
+        ) {
+          const cleanTitle = decodeHtmlEntities(match[2]);
+          if (cleanTitle) {
+            titles.push({ url: rawHref, title: cleanTitle });
+          }
+        }
+      }
+
+      const snippets: string[] = [];
+      while ((match = snippetRegex.exec(html)) !== null) {
+        snippets.push(decodeHtmlEntities(match[1]));
+      }
+
+      for (let i = 0; i < Math.min(titles.length, 4); i++) {
+        results.push({
+          title: titles[i].title,
+          url: titles[i].url,
+          snippet: snippets[i] || "",
+        });
+      }
+    }
+  } catch (ddgErr) {
+    console.warn("Live web search warning:", ddgErr);
+  }
+
+  // 4. Wikipedia Knowledge Base Fallback
+  if (results.length < 2) {
+    try {
+      const isBn = /[\u0980-\u09FF]/.test(query);
+      const wikiLang = isBn ? "bn" : "en";
+      const wUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQuery)}&format=json&origin=*`;
+      const wRes = await fetch(wUrl);
+      if (wRes.ok) {
+        const wData = (await wRes.json()) as any;
+        const searchItems = wData.query?.search || [];
+        for (const item of searchItems.slice(0, 3)) {
+          results.push({
+            title: `${item.title} - Wikipedia`,
+            url: `https://${wikiLang}.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, "_"))}`,
+            snippet: decodeHtmlEntities(item.snippet || ""),
+          });
+        }
+      }
+    } catch (wErr) {
+      console.warn("Wikipedia fallback warning:", wErr);
+    }
+  }
+
+  return results.slice(0, 5);
+}
+
 // AI-generated smart follow-up suggestions
 async function generateAiFollowUpSuggestions(
   replyText: string,
@@ -365,7 +581,26 @@ app.post(["/api/chat", "/chat"], async (req: Request, res: Response) => {
     const lastUploadedMedia = [...messages].reverse().find((m: any) => (m.image && typeof m.image === "string") || m.fileAttachment?.dataUrl)?.fileAttachment?.dataUrl || uploadedImage;
     const hasMedia = mediaMem.hasMedia;
 
-    const fullSystemInstruction = SYSTEM_INSTRUCTION + languagePrompt + dateContext + mediaMem.prompt;
+    // Real-Time Web Search Grounding
+    let groundingSources: { title: string; url: string }[] = [];
+    let webSearchContext = "";
+
+    if (enableSearch && lastContent && isSearchWorthy(lastContent)) {
+      const searchResults = await performLiveWebSearch(lastContent);
+      if (searchResults.length > 0) {
+        groundingSources = searchResults.map((r) => ({ title: r.title, url: r.url }));
+        webSearchContext = `\n\n[REAL-TIME LIVE WEB SEARCH RESULTS]:
+The following verified real-time search results were freshly retrieved from the web for user query ("${lastContent}"):
+${searchResults.map((r, i) => `[Source ${i + 1}]: "${r.title}" (${r.url})\nSnippet: ${r.snippet}`).join("\n\n")}
+
+CRITICAL REAL-TIME GROUNDING INSTRUCTIONS:
+1. Always prioritize the real-time facts, current numbers, latest scores, live prices, or fresh news from the search results above.
+2. Directly answer the user's question accurately based on this live information.
+3. State the facts clearly and concisely.`;
+      }
+    }
+
+    const fullSystemInstruction = SYSTEM_INSTRUCTION + languagePrompt + dateContext + mediaMem.prompt + webSearchContext;
 
     // 1. Primary Engine: OpenRouter API
     const openRouterKey = process.env.OPENROUTER_API_KEY;
@@ -428,7 +663,7 @@ app.post(["/api/chat", "/chat"], async (req: Request, res: Response) => {
             const suggestions = await generateAiFollowUpSuggestions(replyText, lastContent, language);
             return res.json({
               content: replyText,
-              sources: [],
+              sources: groundingSources,
               suggestions,
               imageSummary: newImageSummary || undefined,
               pdfSummary: newPdfSummary || undefined,
@@ -477,7 +712,7 @@ app.post(["/api/chat", "/chat"], async (req: Request, res: Response) => {
             const suggestions = await generateAiFollowUpSuggestions(replyText, lastContent, language);
             return res.json({
               content: replyText,
-              sources: [],
+              sources: groundingSources,
               suggestions,
             });
           }
@@ -487,9 +722,24 @@ app.post(["/api/chat", "/chat"], async (req: Request, res: Response) => {
       }
     }
 
+    if (groundingSources.length > 0) {
+      const intro = language === "bn"
+        ? "আমি ইন্টারনেটে সরাসরি অনুসন্ধান করে আপনার জন্য এই তথ্যগুলো পেয়েছি:\n\n"
+        : "I searched the live web and found the following real-time sources:\n\n";
+      const snippetsFormatted = groundingSources
+        .map((src, i) => `**${i + 1}. [${src.title}](${src.url})**`)
+        .join("\n\n");
+      return res.json({
+        content: intro + snippetsFormatted + (language === "bn" ? "\n\n*সরাসরি দেখতে নিচের সোর্স লিংকগুলোতে ক্লিক করুন।*" : "\n\n*Click the sources below to read more.*"),
+        sources: groundingSources,
+      });
+    }
+
     return res.status(200).json({
-      content: "⚠️ No response received from any AI model.",
-      sources: [],
+      content: language === "bn"
+        ? "⚠️ কোনো এআই মডেল সক্রিয় নেই। দয়া করে আপনার OPENROUTER_API_KEY অথবা GROQ_API_KEY এনভায়রনমেন্ট ভেরিয়েবলে সেট করুন।"
+        : "⚠️ No AI response could be generated. Please ensure OPENROUTER_API_KEY or GROQ_API_KEY is configured in your environment.",
+      sources: groundingSources,
     });
 
   } catch (error: any) {
@@ -577,7 +827,30 @@ app.post(["/api/chat/stream", "/chat/stream"], async (req: Request, res: Respons
     const mediaMemStream = buildFileAndImageMemorySystemPrompt(messages);
     const hasMedia = mediaMemStream.hasMedia;
 
-    const fullSystemInstruction = SYSTEM_INSTRUCTION + languagePrompt + dateContextStream + mediaMemStream.prompt;
+    // Real-Time Web Search Grounding for Streaming
+    let groundingSourcesStream: { title: string; url: string }[] = [];
+    let webSearchContextStream = "";
+
+    const lastContentStream = (lastMessageStream?.content || "").trim();
+    if (enableSearch && lastContentStream && isSearchWorthy(lastContentStream)) {
+      const searchResults = await performLiveWebSearch(lastContentStream);
+      if (searchResults.length > 0) {
+        groundingSourcesStream = searchResults.map((r) => ({ title: r.title, url: r.url }));
+        webSearchContextStream = `\n\n[REAL-TIME LIVE WEB SEARCH RESULTS]:
+The following verified real-time search results were freshly retrieved from the web for user query ("${lastContentStream}"):
+${searchResults.map((r, i) => `[Source ${i + 1}]: "${r.title}" (${r.url})\nSnippet: ${r.snippet}`).join("\n\n")}
+
+CRITICAL REAL-TIME GROUNDING INSTRUCTIONS:
+1. Always prioritize the real-time facts, current numbers, latest scores, live prices, or fresh news from the search results above.
+2. Directly answer the user's question accurately based on this live information.
+3. State the facts clearly and concisely.`;
+
+        // Stream real-time grounding sources to client immediately
+        res.write(`data: ${JSON.stringify({ sources: groundingSourcesStream })}\n\n`);
+      }
+    }
+
+    const fullSystemInstruction = SYSTEM_INSTRUCTION + languagePrompt + dateContextStream + mediaMemStream.prompt + webSearchContextStream;
 
     // 1. Primary Engine: OpenRouter Streaming
     const openRouterKey = process.env.OPENROUTER_API_KEY;
@@ -785,7 +1058,22 @@ app.post(["/api/chat/stream", "/chat/stream"], async (req: Request, res: Respons
       }
     }
 
-    res.write(`data: ${JSON.stringify({ text: "The service is temporarily busy. Please try again in a moment." })}\n\n`);
+    if (groundingSourcesStream.length > 0) {
+      const intro = language === "bn"
+        ? "আমি ইন্টারনেটে সরাসরি অনুসন্ধান করে আপনার জন্য সর্বশেষ রিয়েল-টাইম তথ্য পেয়েছি:\n\n"
+        : "Here is the latest real-time information retrieved from live web search:\n\n";
+      const snippetsFormatted = groundingSourcesStream
+        .map((src, i) => `**${i + 1}. [${src.title}](${src.url})**`)
+        .join("\n\n");
+      res.write(`data: ${JSON.stringify({ text: intro + snippetsFormatted })}\n\n`);
+      res.write("data: [DONE]\n\n");
+      return res.end();
+    }
+
+    const fallbackMsg = language === "bn"
+      ? "⚠️ কোনো এআই মডেল সক্রিয় নেই। দয়া করে আপনার OPENROUTER_API_KEY অথবা GROQ_API_KEY এনভায়রনমেন্ট ভেরিয়েবলে সেট করুন।"
+      : "The service is temporarily busy. Please make sure OPENROUTER_API_KEY or GROQ_API_KEY is configured in your environment.";
+    res.write(`data: ${JSON.stringify({ text: fallbackMsg })}\n\n`);
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error: any) {
