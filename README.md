@@ -1,7 +1,8 @@
 # BD-Zen AI
 
 A modern, fast, and polite AI Assistant designed for Bangladesh with native support for Bengali (বাংলা), English, and Banglish.
-**"AI is not just the future of technology; it's the power to turn imagination into innovation."**
+### 🤖 AI & Innovation
+> "AI transforms imagination into innovation." 🚀
 
 ## Features
 - **Intelligent Reasoning**: Powered by DeepSeek V4 & OpenRouter APIs.
