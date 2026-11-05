@@ -33,6 +33,8 @@ GROQ_API_KEY=your_key_here
 npm run dev
 ```
 
+Created By Rafchan Sami
+
 ### Build & Production
 ```bash
 npm run build
